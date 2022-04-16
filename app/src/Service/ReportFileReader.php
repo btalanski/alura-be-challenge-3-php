@@ -19,7 +19,7 @@ class ReportFileReader
     public function getReportContentByDate(): array {
         return $this->data;
     }
-    
+
     private function parseReportLine(array $line) {
         list(
             $source_bank_name,
@@ -55,9 +55,18 @@ class ReportFileReader
             while (($line = fgetcsv($file, 1000, ",")) !== FALSE) {
                 // Get the number of fields in a line
                 $numberOfFields = count($line);
+                
+                // Check for empty fields in a line
+                $hasEmptyFields = FALSE;
+                for($i = 0; $i < $numberOfFields; $i++){
+                    if(empty($line[$i])){
+                        $hasEmptyFields = TRUE;
+                        break;
+                    }
+                }
 
-                // Only parse lines with the expected number of fields
-                if($numberOfFields === $expectedNumberOfFields){
+                // Only parse lines with the expected number of fields and that contains no empty fields
+                if(!$hasEmptyFields && $numberOfFields === $expectedNumberOfFields){
                     // Parse line
                     $this->data[] = $this->parseReportLine($line);                    
                 }
