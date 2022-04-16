@@ -5,6 +5,7 @@ use App\Entity\TransactionsReport;
 use App\Repository\TransactionsReportRepository;
 use App\Form\Type\TransactionsReportType;
 use Doctrine\Persistence\ManagerRegistry;
+use Exception;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\HttpFoundation\Response;
@@ -32,37 +33,35 @@ class DashboardController extends AbstractController
         if ($form->isSubmitted() && $form->isValid()) {
             $reportFile = $form->get('file')->getData();
 
-            
             if($reportFile){
-                $originalFilename = pathinfo($reportFile->getClientOriginalName(), PATHINFO_FILENAME);
+                $reportFileSize = $reportFile->getSize();
 
+                $originalFilename = pathinfo($reportFile->getClientOriginalName(), PATHINFO_FILENAME);
                 $safeFilename = $slugger->slug($originalFilename);
                 $newFilename = $safeFilename.'-'.uniqid().'.'.$reportFile->guessExtension();
-
+                
+                // Moves the file to a new location
                 try {
                     $reportFile->move(
                         $this->getParameter('reports_directory'),
                         $newFilename
                     );
 
-                    $reportFileSize = filesize($this->getParameter('reports_directory') . DIRECTORY_SEPARATOR . $newFilename);
-
-                    $entityManager = $doctrine->getManager();
-
-                    $report
-                        ->setFileName($newFilename)
-                        ->setFileSize($reportFileSize)
-                        ->setReportDate(new \DateTime())
-                        ->setCreatedAt(new \DateTime());
-
-                    $entityManager->persist($report);
-                    $entityManager->flush();
-
-                    return $this->redirectToRoute('dashboard_index');
-
                 } catch (FileException $e) {
                     // To do: Reporte de erros
-                }
+                }                
+
+                $report
+                    ->setFileName($newFilename)
+                    ->setFileSize($reportFileSize)
+                    ->setReportDate(new \DateTime())
+                    ->setCreatedAt(new \DateTime());
+
+                $entityManager = $doctrine->getManager();
+                $entityManager->persist($report);
+                $entityManager->flush();
+
+                return $this->redirectToRoute('dashboard_index');                
             }
         }
         return $this->renderForm('dashboard/index.html.twig', [
