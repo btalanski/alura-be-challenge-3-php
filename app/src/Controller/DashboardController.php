@@ -58,7 +58,7 @@ class DashboardController extends AbstractController
                 $report
                     ->setFileName($newFilename)
                     ->setFileSize($reportFileSize)
-                    ->setReportDate(new \DateTime($reportContent[0]['transaction_datetime']))
+                    ->setReportDate($reportContent[0]->getTransactionDatetime())
                     ->setCreatedAt(new \DateTime());
 
                 $entityManager = $doctrine->getManager();

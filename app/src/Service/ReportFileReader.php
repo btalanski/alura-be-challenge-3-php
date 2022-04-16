@@ -2,6 +2,8 @@
 
 namespace App\Service;
 
+use App\Entity\Transaction;
+
 class ReportFileReader
 {
     protected $filePath;
@@ -12,15 +14,21 @@ class ReportFileReader
         $this->parseCsvToArray();
     }
 
+    /**
+     * @return Transaction[]
+    */
     public function getReportContent(): array {
         return $this->data;
     }
 
+    /**
+     * @return Transaction[]
+    */
     public function getReportContentByDate(): array {
         return $this->data;
     }
 
-    private function parseReportLine(array $line) {
+    private function formatLineToTransaction(array $line): Transaction {
         list(
             $source_bank_name,
             $source_bank_branch,
@@ -32,18 +40,17 @@ class ReportFileReader
             $transaction_datetime,
         ) = $line;
         
-        // Formats a line
-        $line = [];
-        $line['source_bank_name'] = $source_bank_name;
-        $line['source_bank_branch'] = $source_bank_branch;
-        $line['source_bank_account'] = $source_bank_account;
-        $line['destination_bank_name'] = $destination_bank_name;
-        $line['destination_bank_branch'] = $destination_bank_branch;
-        $line['destination_bank_account'] = $destination_bank_account;
-        $line['transaction_amount'] = $transaction_amount;
-        $line['transaction_datetime'] = $transaction_datetime;
+        $transaction = new Transaction();
+        $transaction->setSourceBankName($source_bank_name);
+        $transaction->setSourceBankBranch($source_bank_branch);
+        $transaction->setSourceBankAccount($source_bank_account);
+        $transaction->setDestinationBankName($destination_bank_name);
+        $transaction->setDestinationBankBranch($destination_bank_branch);
+        $transaction->setDestinationBankAccount($destination_bank_account);
+        $transaction->setTransactionAmount($transaction_amount);
+        $transaction->setTransactionDatetime(new \DateTime($transaction_datetime));
 
-        return $line;
+        return $transaction;
     }
     
     private function parseCsvToArray() {
@@ -68,7 +75,7 @@ class ReportFileReader
                 // Only parse lines with the expected number of fields and that contains no empty fields
                 if(!$hasEmptyFields && $numberOfFields === $expectedNumberOfFields){
                     // Parse line
-                    $this->data[] = $this->parseReportLine($line);                    
+                    $this->data[] = $this->formatLineToTransaction($line);                    
                 }
             }
 
