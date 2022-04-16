@@ -13,7 +13,7 @@ Para executar a aplicação é preciso garantir que seu sistema atenda ao requis
 1. Clone o repositório
 2. Crie um novo arquivo `.env` a partir do template e altera os valores conforme necessário:
 ```bash
-    cd src && cp .env.template .env
+    cd src && cp .env .env.local
 ```
 3. Execute o docker-compose na raiz do diretório:
 ```bash
