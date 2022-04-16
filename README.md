@@ -29,5 +29,9 @@ Para executar a aplicação é preciso garantir que seu sistema atenda ao requis
 ```
 5. Ainda dentro do container, execute as migrações para preparar o banco
 ```bash
-    # To do: Adicionar comando para executar as migrações
+    #cria o banco de dados para a aplicação
+    php bin/console doctrine:database:create
+    
+    # faz o deploy das migrations
+    php bin/console doctrine:migrations:migrate
 ```

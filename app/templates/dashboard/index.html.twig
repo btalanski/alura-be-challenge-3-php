@@ -9,6 +9,45 @@
     </nav>
 </header>
 <div class="container-xxl my-md-4">
-    <main></main>
+    <main>
+        <section>
+            <header>
+                <h1>Importar transações</h1>
+            </header>
+            <div>
+                {{ form(form) }}
+            </div>
+        </section>
+
+        <section>
+            <header>
+                <h1>Relatório de importações</h1>
+            </header>
+            <div>
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th scope="col">#</th>
+                            <th scope="col">Arquivo</th>
+                            <th scope="col">Tamanho (bytes)</th>
+                            <th scope="col">Data transações</th>
+                            <th scope="col">Data importação</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for report in reports %}
+                            <tr>
+                                <td>{{ report.id }}</td>
+                                <td>{{ report.fileName }}</td>
+                                <td>{{ report.fileSize }}</td>
+                                <td>{{ report.reportDate|date('Y-m-d') }}</td>
+                                <td>{{ report.createdAt|date('Y-m-d H:i:s') }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
 </div>
 {% endblock %}
