@@ -4,8 +4,8 @@ namespace App\Controller;
 use App\Entity\TransactionsReport;
 use App\Repository\TransactionsReportRepository;
 use App\Form\Type\TransactionsReportType;
+use App\Service\ReportFileReader;
 use Doctrine\Persistence\ManagerRegistry;
-use Exception;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\HttpFoundation\Response;
@@ -22,6 +22,7 @@ class DashboardController extends AbstractController
         Request $request, 
         ManagerRegistry $doctrine,
         TransactionsReportRepository $reportsReporitory,
+        ReportFileReader $reportReader,
         SluggerInterface $slugger
     ): Response
     {
@@ -51,10 +52,13 @@ class DashboardController extends AbstractController
                     // To do: Reporte de erros
                 }                
 
+                $reportReader->setReportFile($this->getParameter('reports_directory') . DIRECTORY_SEPARATOR . $newFilename);
+                $reportContent = $reportReader->getReportContent();
+
                 $report
                     ->setFileName($newFilename)
                     ->setFileSize($reportFileSize)
-                    ->setReportDate(new \DateTime())
+                    ->setReportDate(new \DateTime($reportContent[0]['transaction_datetime']))
                     ->setCreatedAt(new \DateTime());
 
                 $entityManager = $doctrine->getManager();
