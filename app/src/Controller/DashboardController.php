@@ -7,6 +7,7 @@ use App\Form\Type\TransactionsReportType;
 use App\Service\ReportFileReader;
 use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\Form\FormError;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Request;
@@ -28,9 +29,10 @@ class DashboardController extends AbstractController
     {
         $report = new TransactionsReport();
         $reports = $reportsReporitory->findAll();
+        
         $form = $this->createForm(TransactionsReportType::class, $report);
-
         $form->handleRequest($request);
+
         if ($form->isSubmitted() && $form->isValid()) {
             $reportFile = $form->get('file')->getData();
 
@@ -40,6 +42,7 @@ class DashboardController extends AbstractController
                 $originalFilename = pathinfo($reportFile->getClientOriginalName(), PATHINFO_FILENAME);
                 $safeFilename = $slugger->slug($originalFilename);
                 $newFilename = $safeFilename.'-'.uniqid().'.'.$reportFile->guessExtension();
+                $reportFileTargetLocation = $this->getParameter('reports_directory') . DIRECTORY_SEPARATOR . $newFilename;
                 
                 // Moves the file to a new location
                 try {
@@ -47,27 +50,42 @@ class DashboardController extends AbstractController
                         $this->getParameter('reports_directory'),
                         $newFilename
                     );
-
                 } catch (FileException $e) {
-                    // To do: Reporte de erros
+                    // To do: handle upload error
                 }                
 
-                $reportReader->setReportFile($this->getParameter('reports_directory') . DIRECTORY_SEPARATOR . $newFilename);
+                // Parse report file and get transactions
+                $reportReader->readReportFile($reportFileTargetLocation);
                 $reportContent = $reportReader->getReportContent();
-
-                $report
+                $currentReportDate = $reportContent[0]->getTransactionDatetime();
+                
+                // Report validation
+                $transactionDateExistsInDb = $reportsReporitory->checkIfReportDateExists($currentReportDate);
+                
+                if(!$transactionDateExistsInDb)
+                {
+                    $report
                     ->setFileName($newFilename)
                     ->setFileSize($reportFileSize)
-                    ->setReportDate($reportContent[0]->getTransactionDatetime())
+                    ->setReportDate($currentReportDate)
                     ->setCreatedAt(new \DateTime());
 
-                $entityManager = $doctrine->getManager();
-                $entityManager->persist($report);
-                $entityManager->flush();
+                    $entityManager = $doctrine->getManager();
+                    $entityManager->persist($report);
+                    $entityManager->flush();
 
-                return $this->redirectToRoute('dashboard_index');                
+                    return $this->redirectToRoute('dashboard_index'); 
+                }
+                else {
+                    $this->addFlash(
+                        "error",
+                        "Transações com a data de \"{$currentReportDate->format("Y-m-d")}\" já foram importadas previamente."
+                    );
+                }
+                               
             }
         }
+
         return $this->renderForm('dashboard/index.html.twig', [
             'form' => $form,
             'reports' => $reports,

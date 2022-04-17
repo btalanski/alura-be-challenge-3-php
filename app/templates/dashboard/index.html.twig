@@ -15,6 +15,14 @@
                 <h1>Importar transações</h1>
             </header>
             <div>
+                {% for messages in app.flashes(['error']) %}
+                    {% for message in messages %}
+                        <div class="alert alert-danger" role="alert">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endfor %}
+                
                 {{ form(form) }}
             </div>
         </section>

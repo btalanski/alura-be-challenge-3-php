@@ -45,6 +45,20 @@ class TransactionsReportRepository extends ServiceEntityRepository
         }
     }
 
+    /**
+     * @return boolean
+     */
+    public function checkIfReportDateExists(\DateTime $transactionDateTime){
+        $totalRows = $this->createQueryBuilder('p')
+            ->select("count(p.id)")
+            ->where('p.report_date = :date')
+            ->setParameter('date', $transactionDateTime->format("Y-m-d"))
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        return $totalRows > 0;
+    }
+
     // /**
     //  * @return TransactionsReport[] Returns an array of TransactionsReport objects
     //  */

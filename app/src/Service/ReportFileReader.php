@@ -7,9 +7,9 @@ use App\Entity\Transaction;
 class ReportFileReader
 {
     protected $filePath;
-    private $data;
+    private $reportContent;
 
-    public function setReportFile(string $filePath){
+    public function readReportFile(string $filePath){
         $this->filePath = $filePath;
         $this->parseCsvToArray();
     }
@@ -18,14 +18,19 @@ class ReportFileReader
      * @return Transaction[]
     */
     public function getReportContent(): array {
-        return $this->data;
-    }
+        $firstTransactionDateTime = $this->reportContent[0]->getTransactionDatetime();
 
-    /**
-     * @return Transaction[]
-    */
-    public function getReportContentByDate(): array {
-        return $this->data;
+        $sameDayTransactions = [];
+
+        foreach($this->reportContent as $transaction){
+            $transactionDate = $transaction->getTransactionDatetime()->format("Y-m-d");
+            
+            if($transactionDate === $firstTransactionDateTime->format("Y-m-d")){
+                $sameDayTransactions[] = $transaction;
+            }
+        }
+
+        return $sameDayTransactions;
     }
 
     private function formatLineToTransaction(array $line): Transaction {
@@ -53,8 +58,8 @@ class ReportFileReader
         return $transaction;
     }
     
-    private function parseCsvToArray() {
-        $this->data = [];
+    private function parseCsvToArray(): void {
+        $this->reportContent = [];
 
         if (($file = fopen($this->filePath, "r")) !== FALSE) {
             $expectedNumberOfFields = 8;
@@ -75,7 +80,7 @@ class ReportFileReader
                 // Only parse lines with the expected number of fields and that contains no empty fields
                 if(!$hasEmptyFields && $numberOfFields === $expectedNumberOfFields){
                     // Parse line
-                    $this->data[] = $this->formatLineToTransaction($line);                    
+                    $this->reportContent[] = $this->formatLineToTransaction($line);                    
                 }
             }
 
