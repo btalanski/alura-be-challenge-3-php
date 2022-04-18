@@ -5,6 +5,7 @@ use App\Entity\TransactionsReport;
 use App\Repository\TransactionsReportRepository;
 use App\Form\Type\TransactionsReportType;
 use App\Service\ReportFileReader;
+use App\Service\FileUploader;
 use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormError;
@@ -24,7 +25,7 @@ class DashboardController extends AbstractController
         ManagerRegistry $doctrine,
         TransactionsReportRepository $reportsReporitory,
         ReportFileReader $reportReader,
-        SluggerInterface $slugger
+        FileUploader $fileUploader
     ): Response
     {
         $report = new TransactionsReport();
@@ -38,37 +39,25 @@ class DashboardController extends AbstractController
 
             if($reportFile){
                 $reportFileSize = $reportFile->getSize();
+                $reportFileName = $fileUploader->upload($reportFile);       
 
-                $originalFilename = pathinfo($reportFile->getClientOriginalName(), PATHINFO_FILENAME);
-                $safeFilename = $slugger->slug($originalFilename);
-                $newFilename = $safeFilename.'-'.uniqid().'.'.$reportFile->guessExtension();
-                $reportFileTargetLocation = $this->getParameter('reports_directory') . DIRECTORY_SEPARATOR . $newFilename;
-                
-                // Moves the file to a new location
-                try {
-                    $reportFile->move(
-                        $this->getParameter('reports_directory'),
-                        $newFilename
-                    );
-                } catch (FileException $e) {
-                    // To do: handle upload error
-                }                
-
-                // Parse report file and get transactions
-                $reportReader->readReportFile($reportFileTargetLocation);
+                // Process report file
+                $reportReader->readReportFile($fileUploader->getFileFullPath());
                 $reportTransactions = $reportReader->getReportTransactions();
-                $currentReportDate = $reportTransactions[0]->getTransactionDatetime();
+                $reportTransactionsCount = count($reportTransactions);
+                $currentReportDate = $reportReader->getReportDate();
                 
                 // Report validation
-                $transactionDateExistsInDb = $reportsReporitory->checkIfReportDateExists($currentReportDate);
+                $reportHasTransactions = true === $reportTransactionsCount > 0;
+                $transactionDateExistsInDb = $reportsReporitory->checkIfReportDateExists($reportReader->getReportDate());
                 
-                if(!$transactionDateExistsInDb)
+                if($reportHasTransactions && !$transactionDateExistsInDb)
                 {
                     $entityManager = $doctrine->getManager();
 
                     // Persist report to DB
                     $report
-                        ->setFileName($newFilename)
+                        ->setFileName($reportFileName)
                         ->setFileSize($reportFileSize)
                         ->setReportDate($currentReportDate)
                         ->setCreatedAt(new \DateTime());
@@ -78,7 +67,7 @@ class DashboardController extends AbstractController
                     // Batch insert Transactions from report to DB
                     // To do: Can be improved
                     $batchSize = 20;
-                    for ($i = 1; $i < count($reportTransactions); ++$i) {
+                    for ($i = 1; $i < $reportTransactionsCount; ++$i) {
                         $entityManager->persist($reportTransactions[$i]);
                         if (($i % $batchSize) === 0) {
                             $entityManager->flush();
@@ -88,7 +77,7 @@ class DashboardController extends AbstractController
 
                     $entityManager->flush();
 
-                    return $this->redirectToRoute('dashboard_index'); 
+                    return $this->redirectToRoute('dashboard_index', ['success' => 1]); 
                 }
                 else {
                     $this->addFlash(

@@ -7,10 +7,13 @@ use App\Entity\Transaction;
 class ReportFileReader
 {
     protected $filePath;
-    private $reportContent;
+    protected $reportContent;
+    protected $reportDate;
+    private const EXPECTED_NUMBER_OF_FIELDS = 8;
 
     public function readReportFile(string $filePath){
         $this->filePath = $filePath;
+        $this->reportContent = [];
         $this->parseCsvToArray();
     }
 
@@ -31,6 +34,18 @@ class ReportFileReader
         }
 
         return $sameDayTransactions;
+    }
+
+    /**
+     * @throws \Exception
+     * @return \Datetime
+     */
+    public function getReportDate() {
+        if (count($this->reportContent) > 0){
+            return $this->reportContent[0]->getTransactionDatetime();
+        }
+
+        throw new \Exception("Report content is empty");
     }
 
     private function formatLineToTransaction(array $line): Transaction {
@@ -59,10 +74,7 @@ class ReportFileReader
     }
     
     private function parseCsvToArray(): void {
-        $this->reportContent = [];
-
         if (($file = fopen($this->filePath, "r")) !== FALSE) {
-            $expectedNumberOfFields = 8;
 
             while (($line = fgetcsv($file, 1000, ",")) !== FALSE) {
                 // Get the number of fields in a line
@@ -78,8 +90,7 @@ class ReportFileReader
                 }
 
                 // Only parse lines with the expected number of fields and that contains no empty fields
-                if(!$hasEmptyFields && $numberOfFields === $expectedNumberOfFields){
-                    // Parse line
+                if(!$hasEmptyFields && $numberOfFields === self::EXPECTED_NUMBER_OF_FIELDS){
                     $this->reportContent[] = $this->formatLineToTransaction($line);                    
                 }
             }

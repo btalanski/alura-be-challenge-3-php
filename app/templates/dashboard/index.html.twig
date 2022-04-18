@@ -15,6 +15,11 @@
                 <h1>Importar transações</h1>
             </header>
             <div>
+                {% if app.request.get("success") == 1 %}
+                    <div class="alert alert-success" role="alert">
+                        Arquivo importado com sucesso.        
+                    </div>
+                {% endif %}
                 {% for messages in app.flashes(['error']) %}
                     {% for message in messages %}
                         <div class="alert alert-danger" role="alert">
