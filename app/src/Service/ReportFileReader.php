@@ -17,7 +17,7 @@ class ReportFileReader
     /**
      * @return Transaction[]
     */
-    public function getReportContent(): array {
+    public function getReportTransactions(): array {
         $firstTransactionDateTime = $this->reportContent[0]->getTransactionDatetime();
 
         $sameDayTransactions = [];

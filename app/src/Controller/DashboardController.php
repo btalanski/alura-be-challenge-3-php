@@ -56,22 +56,36 @@ class DashboardController extends AbstractController
 
                 // Parse report file and get transactions
                 $reportReader->readReportFile($reportFileTargetLocation);
-                $reportContent = $reportReader->getReportContent();
-                $currentReportDate = $reportContent[0]->getTransactionDatetime();
+                $reportTransactions = $reportReader->getReportTransactions();
+                $currentReportDate = $reportTransactions[0]->getTransactionDatetime();
                 
                 // Report validation
                 $transactionDateExistsInDb = $reportsReporitory->checkIfReportDateExists($currentReportDate);
                 
                 if(!$transactionDateExistsInDb)
                 {
-                    $report
-                    ->setFileName($newFilename)
-                    ->setFileSize($reportFileSize)
-                    ->setReportDate($currentReportDate)
-                    ->setCreatedAt(new \DateTime());
-
                     $entityManager = $doctrine->getManager();
+
+                    // Persist report to DB
+                    $report
+                        ->setFileName($newFilename)
+                        ->setFileSize($reportFileSize)
+                        ->setReportDate($currentReportDate)
+                        ->setCreatedAt(new \DateTime());
+
                     $entityManager->persist($report);
+
+                    // Batch insert Transactions from report to DB
+                    // To do: Can be improved
+                    $batchSize = 20;
+                    for ($i = 1; $i < count($reportTransactions); ++$i) {
+                        $entityManager->persist($reportTransactions[$i]);
+                        if (($i % $batchSize) === 0) {
+                            $entityManager->flush();
+                            $entityManager->clear();
+                        }
+                    }
+
                     $entityManager->flush();
 
                     return $this->redirectToRoute('dashboard_index'); 
